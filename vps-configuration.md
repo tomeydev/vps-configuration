@@ -64,10 +64,44 @@ Autentica el link que aparecerá en consola.
 
 ### 2. Configuración de MagicDNS (Opcional pero recomendado)
 
-- En el Admin Console de Tailscale, activa MagicDNS.  
-- En la lista de máquinas, renombra tu servidor a algo simple (ej. `servidor`).
+#### Paso 1: Activar MagicDNS en el Panel de Tailscale
 
-Resultado: podrás acceder vía `ssh nombre_usuario@servidor` siempre que MagicDNS esté activado y tu cliente Tailscale tenga habilitada la resolución DNS de Tailscale. Si no funcionan los nombres cortos, usa la dirección con el dominio completo de Tailscale o la IP del túnel (`100.x.y.z`).
+1. Entra a tu [Consola de Tailscale](https://login.tailscale.com/admin/dns).
+2. Ve a la pestaña **DNS**.
+3. Busca la sección **MagicDNS** y haz clic en el botón **Enable MagicDNS**.
+
+#### Paso 2: Personalizar el nombre de tu VPS
+
+Por defecto, Tailscale usa el nombre que tiene el servidor en el sistema (ej. `ubuntu-24-04-lts`). Vamos a ponerle uno más corto:
+
+1. En la consola de Tailscale, ve a la pestaña **Machines**.
+2. Busca tu VPS en la lista.
+3. Haz clic en los tres puntos (`...`) al final de la fila y selecciona **Edit machine name**.
+4. Desactiva "Use OS hostname" y escribe un nombre corto, por ejemplo: `servidor`.
+5. Haz clic en **Save**.
+
+#### Paso 3: Simplificar el acceso SSH en tu Mac Mini
+
+Ahora vamos a configurar tu Mac para que reconozca ese nombre y sepa qué usuario usar automáticamente.
+
+- En tu Mac Mini, abre la terminal y edita (o crea) tu archivo de configuración SSH:
+
+```bash
+nano ~/.ssh/config
+```
+
+- Pega el siguiente bloque al principio del archivo (reemplaza `tu_usuario` por el nombre de usuario que creaste en el VPS):
+
+```plaintext
+Host vps
+    HostName servidor
+    User tu_usuario
+```
+
+- Guarda con `Ctrl+O`, `Enter` y sal con `Ctrl+X`.
+
+**Resultado:** Ahora, para entrar a tu servidor desde tu dispositivo, solo tienes que escribir: 
+`ssh vps`
 
 ---
 
@@ -124,12 +158,70 @@ sudo systemctl restart ssh
 
 Si deseas una capa extra de "seguridad por oscuridad":
 En `sshd_config`, cambia `Port 22` a uno personalizado (ej. `Port 5522`).
-Recuerda permitir ese puerto en UFW y mantener una sesión activa mientras pruebas para no perder acceso.
+
+#### Paso 1: Elegir un puerto
+
+Elige un número entre 1024 y 65535. Evita los comunes (8080, 3000, 8000).
+
+- _Sugerencia:_ Usemos el **5522** (fácil de recordar, pero no estándar).
+
+#### Paso 2: Editar la configuración SSH
+
+- Edita el archivo de configuración:
+
+```bash
+sudo nano /etc/ssh/sshd_config
+```
+
+- Busca la línea que dice `Include /etc/ssh/sshd_config.d/*.conf`. A veces la configuración real está ahí dentro, pero generalmente podemos sobrescribirla aquí o editar la línea `Port 22`.
+
+- Busca la línea `#Port 22` (si tiene un #, bórralo).
+
+- Cámbiala por:
+
+```plaintext
+Port 5522
+```
+
+- Guarda (`Ctrl+O`, `Enter`) y sal (`Ctrl+X`).
+
+#### Paso 3: Ajustar el Firewall (UFW)
+
+Aunque la regla de Tailscale (`allow in on tailscale0`) permite todo el tráfico por la VPN (incluido el nuevo puerto), es bueno ser explícito por si algún día necesitas entrar por la IP pública de emergencia.
+
+- Abre el nuevo puerto en el firewall:
 
 ```bash
 sudo ufw allow 5522/tcp
-sudo systemctl.restart ssh
 ```
+
+>Nota: Si quieres mantener la seguridad máxima, ignora este paso. Tu regla de Tailscale ya permitirá el tráfico por el puerto 5522 automáticamente porque permitimos todo tráfico en la interfaz (`tailscale0`).
+
+- Borra la regla antigua del puerto 22 (Opcional, para limpieza):
+
+```bash
+sudo ufw delete allow 22/tcp
+```
+
+#### Paso 4: Reiniciar SSH
+
+Aplica los cambios.
+
+```bash
+sudo service ssh restart
+```
+
+#### Paso 5: Prueba de Fuego (Testing)
+
+1. **NO CIERRES TU TERMINAL ACTUAL.**
+2. Abre una **nueva** terminal en tu Mac.
+3. Intenta conectar especificando el puerto con `-p`:
+
+```bash
+ssh -p 5522 tu_usuario@IP_TAILSCALE
+```
+
+Si entraste exitosamente, ¡felicitaciones! Ya cambiaste el puerto.
 
 ---
 
@@ -165,22 +257,9 @@ Recomendación: limita Dokploy para que escuche solo en la interfaz Tailscale o 
 
 ## Fase 5: Optimización del Flujo de Trabajo (Local)
 
-Para que tu experiencia como desarrollador sea fluida desde tu Mac Mini o cualquier otro dispositivo.
+Para que tu experiencia como desarrollador sea fluida desde tu dispositivo principal o cualquier otro dispositivo.
 
-### 1. Alias de SSH en tu PC local
-
-Edita tu archivo local `~/.ssh/config`:
-
-```text
-Host vps
-    HostName servidor
-    User nombre_usuario
-    # Port 5522 (Descomenta si cambiaste el puerto)
-```
-
-Ahora solo necesitas ejecutar `ssh vps` para entrar.
-
-### 2. Acceso desde dispositivos móviles
+### 1. Acceso desde dispositivos móviles
 
 - Instala la app de Tailscale en tu iPhone/iPad.  
 - Instala un cliente SSH como Termius.  
@@ -204,5 +283,3 @@ Ahora solo necesitas ejecutar `ssh vps` para entrar.
 - Asegura que Dokploy no esté expuesto públicamente: bind a `tailscale0` o detrás de proxy.
 
 ---
-
-Archivo original con typo renombrado a `vps-configuration.md` para evitar confusiones.
