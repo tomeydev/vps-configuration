@@ -100,7 +100,7 @@ Host vps
 
 - Guarda con `Ctrl+O`, `Enter` y sal con `Ctrl+X`.
 
-**Resultado:** Ahora, para entrar a tu servidor desde tu dispositivo, solo tienes que escribir: 
+**Resultado:** Ahora, para entrar a tu servidor desde tu dispositivo, solo tienes que escribir:
 `ssh vps`
 
 ---
@@ -251,7 +251,17 @@ Gracias a la configuración anterior, el panel de Dokploy (puerto 3000) no es ac
 - `http://servidor:3000` (usando MagicDNS)  
 - o `http://100.x.y.z:3000` (IP de Tailscale)
 
-Recomendación: limita Dokploy para que escuche solo en la interfaz Tailscale o pon un proxy inverso con autenticación. Evita exponer el puerto 3000 directamente a Internet.
+### 4.Deshabilitar el acceso mediante `IP:puerto`  (opcional, pero recomendado)
+
+Para mejorar la seguridad, se recomienda restringir el acceso a Dokploy mediante la dirección IP y el puerto del servidor.
+
+>**Importante**: Antes de deshabilitar el acceso mediante `IP:puerto`, asegúrese de haber configurado un dominio con HTTPS funcionando correctamente. De lo contrario, perderá el acceso a su instalación de Dokploy. Consulte la sección Dominios para configurarlo primero.
+
+Una vez que haya verificado que su dominio funciona correctamente, puede deshabilitar el acceso mediante `IP:puerto` ejecutando este comando en el servidor:
+
+```bash
+docker service update --publish-rm "published=3000,target=3000,mode=host" dokploy
+```
 
 ---
 
