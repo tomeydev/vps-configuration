@@ -1,5 +1,7 @@
 # 🚀 Guía de Configuración Profesional de VPS: Seguridad, Redes y Despliegue
 
+[🇺🇸 Leer en Inglés](../en/vps-configuration.md)
+
 Esta guía detalla el proceso para transformar un VPS en una infraestructura de producción segura y eficiente. Está diseñada y probada específicamente para **Ubuntu 24.04 LTS**, aunque la mayoría de los pasos son compatibles con otras distribuciones basadas en Debian.
 
 ---
